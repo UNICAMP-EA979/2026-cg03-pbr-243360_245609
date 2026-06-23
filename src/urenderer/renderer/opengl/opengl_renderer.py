@@ -48,21 +48,27 @@ class OpenGLRenderer(Renderer):
         super().__init__(screen_width, screen_height)
         self._executor = ProcessPoolExecutor(max_workers=1)
 
-        ## SEU CÓDIGO AQUI ######################################################
+        self._executor = ProcessPoolExecutor(max_workers=1)
+
         # Inicializa o GLFW, core profile e OpenGL 3.3
+        if not glfw.init():
+            raise RuntimeError("Failed to initialize GLFW")
 
-        #########################################################################
+        glfw.window_hint(glfw.CONTEXT_VERSION_MAJOR, 3)
+        glfw.window_hint(glfw.CONTEXT_VERSION_MINOR, 3)
+        glfw.window_hint(glfw.OPENGL_PROFILE, glfw.OPENGL_CORE_PROFILE)
+        glfw.window_hint(glfw.OPENGL_FORWARD_COMPAT, GL.GL_TRUE)  # macOS compat
 
-        ## SEU CÓDIGO AQUI ######################################################
         # Cria a janela, associando ela ao contexto
-        # e configurando o tamanho dela no OpenGl
+        # e configurando o tamanho dela no OpenGL
+        window = glfw.create_window(screen_width, screen_height,
+                                    "urenderer", None, None)
+        if not window:
+            glfw.terminate()
+            raise RuntimeError("Failed to create GLFW window")
 
-        #########################################################################
-
-        ## SEU CÓDIGO AQUI ######################################################
-        # Habilite o uso de GL_FRAMEBUFFER_SRGB para convertor cores para sRGB
-
-        #########################################################################
+        glfw.make_context_current(window)
+        GL.glViewport(0, 0, screen_width, screen_height)
 
         glfw.set_framebuffer_size_callback(
             window, self._framebuffer_size_callback)
@@ -110,6 +116,10 @@ class OpenGLRenderer(Renderer):
         # Para o de cor, utilize a cor self.background_color
 
         #########################################################################
+        # Limpa os buffers de cor e profundidade
+        r, g, b, a = self.background_color
+        GL.glClearColor(r, g, b, a)
+        GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
 
     def validate(self, node: Node, model_transformation: np.ndarray) -> bool:
         '''
@@ -147,7 +157,18 @@ class OpenGLRenderer(Renderer):
 
         material.use()
 
-        ## SEU CÓDIGO AQUI ######################################################
+        material.shader.set_uniform(
+            "modelTransformation",
+            model_transformation.astype(np.float32)
+        )
+        material.shader.set_uniform(
+            "viewTransformation",
+            self._view_matrix.astype(np.float32)
+        )
+        material.shader.set_uniform(
+            "projectionMatrix",
+            self._projection_matrix.astype(np.float32)
+        )
         # Defina as uniforms 'modelTransformation', 'viewTransformation' e
         # 'projectionMatrix' do material.shader, as matrizes de transformação de
         # coordenadas 4x4.
@@ -210,9 +231,10 @@ class OpenGLRenderer(Renderer):
 
             self._executor.submit(save_frame, filename, frame)
 
-        ## SEU CÓDIGO AQUI ######################################################
-        # Troque o buffer frontal e traseiro, mostrando o novo buffer renderizado
+        
 
+        # Troque o buffer frontal e traseiro, mostrando o novo buffer renderizado
+        glfw.swap_buffers(self._window)
         #########################################################################
 
         glfw.poll_events()
