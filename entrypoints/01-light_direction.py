@@ -1,6 +1,6 @@
 import numpy as np
-import sys
-sys.path.insert(0, r"C:\Users\rafae\2026-cg03-pbr-243360_245609\src")
+#import sys
+#sys.path.insert(0, r"C:\Users\rafae\2026-cg03-pbr-243360_245609\src")
 import urenderer
 
 # Sombreia sem utilizar informações da superfície
