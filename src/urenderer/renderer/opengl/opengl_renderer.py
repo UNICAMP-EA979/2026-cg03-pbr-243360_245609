@@ -48,21 +48,27 @@ class OpenGLRenderer(Renderer):
         super().__init__(screen_width, screen_height)
         self._executor = ProcessPoolExecutor(max_workers=1)
 
-        ## SEU CÓDIGO AQUI ######################################################
+        self._executor = ProcessPoolExecutor(max_workers=1)
+
         # Inicializa o GLFW, core profile e OpenGL 3.3
+        if not glfw.init():
+            raise RuntimeError("Failed to initialize GLFW")
 
-        #########################################################################
+        glfw.window_hint(glfw.CONTEXT_VERSION_MAJOR, 3)
+        glfw.window_hint(glfw.CONTEXT_VERSION_MINOR, 3)
+        glfw.window_hint(glfw.OPENGL_PROFILE, glfw.OPENGL_CORE_PROFILE)
+        glfw.window_hint(glfw.OPENGL_FORWARD_COMPAT, GL.GL_TRUE)  # macOS compat
 
-        ## SEU CÓDIGO AQUI ######################################################
         # Cria a janela, associando ela ao contexto
-        # e configurando o tamanho dela no OpenGl
+        # e configurando o tamanho dela no OpenGL
+        window = glfw.create_window(screen_width, screen_height,
+                                    "urenderer", None, None)
+        if not window:
+            glfw.terminate()
+            raise RuntimeError("Failed to create GLFW window")
 
-        #########################################################################
-
-        ## SEU CÓDIGO AQUI ######################################################
-        # Habilite o uso de GL_FRAMEBUFFER_SRGB para convertor cores para sRGB
-
-        #########################################################################
+        glfw.make_context_current(window)
+        GL.glViewport(0, 0, screen_width, screen_height)
 
         glfw.set_framebuffer_size_callback(
             window, self._framebuffer_size_callback)
@@ -75,6 +81,11 @@ class OpenGLRenderer(Renderer):
         self.ambient_color = np.array([0.0, 0.0, 0.0], dtype=np.float32)
 
         GL.glDisable(GL.GL_DITHER)
+
+        # Habilita a conversão automática de RGB linear para sRGB (ajuste de gamma)
+        # O OpenGL aplica a curva de gamma (≈ x^(1/2.2)) em cada fragmento antes
+        # de gravar no framebuffer, garantindo que a saída seja perceptualmente correta.
+        GL.glEnable(GL.GL_FRAMEBUFFER_SRGB)
 
     def _framebuffer_size_callback(self, window: GLFWWindow,
                                    width: int, height: int):
@@ -105,11 +116,10 @@ class OpenGLRenderer(Renderer):
 
         glfw.set_window_title(self._window, name)
 
-        ## SEU CÓDIGO AQUI ######################################################
-        # Limpe os buffers de cor e profundidade (COLOR_BUFFER e DEPTH_BUFFER)
-        # Para o de cor, utilize a cor self.background_color
-
-        #########################################################################
+        # Limpa os buffers de cor e profundidade
+        r, g, b, a = self.background_color
+        GL.glClearColor(r, g, b, a)
+        GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
 
     def validate(self, node: Node, model_transformation: np.ndarray) -> bool:
         '''
@@ -147,38 +157,42 @@ class OpenGLRenderer(Renderer):
 
         material.use()
 
-        ## SEU CÓDIGO AQUI ######################################################
-        # Defina as uniforms 'modelTransformation', 'viewTransformation' e
-        # 'projectionMatrix' do material.shader, as matrizes de transformação de
-        # coordenadas 4x4.
-        #
-        # Utilize o método set_uniform do shader, pois não queremos alterar a
-        # uniform para todo uso do material.
-        #
-        # Atente-se que os valores precisam ser convertidos para np.float32
+        material.shader.set_uniform(
+            "modelTransformation",
+            model_transformation.astype(np.float32)
+        )
+        material.shader.set_uniform(
+            "viewTransformation",
+            self._view_matrix.astype(np.float32)
+        )
+        material.shader.set_uniform(
+            "projectionMatrix",
+            self._projection_matrix.astype(np.float32)
+        )
 
-        #########################################################################
-
-        ## SEU CÓDIGO AQUI ######################################################
-        # Defina a uniform lights para os valores correspondetes de cada luz.
+        # Envia as informações de cada luz para o shader.
         #
-        # As luzes precisam ser enviadas sequencialmente ([luz0, luz1, UNDEFINED, UNDEFINED, ...])
-        # Você pode alterar o valor da uniforme 'type' da light 0 usando: 'light[0].type'.
+        # O shader espera um array de structs 'light[MAX_LIGHTS]' com os campos:
+        #   - type      : inteiro que identifica o tipo da luz
+        #                 (e.g. 0 = indefinida, 1 = direcional, 2 = pontual)
+        #   - color     : vec3 com a cor/intensidade RGB da luz
+        #   - position  : vec3 com a posição em espaço de mundo (luzes pontuais)
+        #   - direction : vec3 com a direção em espaço de mundo (luzes direcionais)
         #
-        # Utilize o método set_uniform do shader
-
+        # Apenas as luzes presentes em self._lights são preenchidas; as demais
+        # ficam com type = 0 (UNDEFINED), sendo ignoradas pelo shader.
         for i, light_info in enumerate(self._lights):
             light = cast(Light, light_info["node"])
             light_position = cast(np.ndarray, light_info["position"])
 
-        #########################################################################
-
-        ## SEU CÓDIGO AQUI ######################################################
-        # Defina a uniform ambientColor para self.ambient_color
-        #
-        # Utilize o método set_uniform do shader
-
-        #########################################################################
+            material.shader.set_uniform(f"lights[{i}].type",               light.light_type.value)
+            material.shader.set_uniform(f"lights[{i}].color",              light.light_color.astype(np.float32))
+            material.shader.set_uniform(f"lights[{i}].direction",          light.light_direction.astype(np.float32))
+            material.shader.set_uniform(f"lights[{i}].position",           light_position)
+            material.shader.set_uniform(f"lights[{i}].intensity",          float(light.light_intensity))
+            material.shader.set_uniform(f"lights[{i}].reference_distance", float(light.light_reference_distance))# Envia a cor ambiente global, somada a todos os fragmentos independente
+        # de qualquer luz direcional/pontual.
+        material.shader.set_uniform("ambientColor", self.ambient_color)
 
         mesh.draw()
 
@@ -210,10 +224,8 @@ class OpenGLRenderer(Renderer):
 
             self._executor.submit(save_frame, filename, frame)
 
-        ## SEU CÓDIGO AQUI ######################################################
-        # Troque o buffer frontal e traseiro, mostrando o novo buffer renderizado
-
-        #########################################################################
+        # Troca o buffer frontal e traseiro, mostrando o novo buffer renderizado
+        glfw.swap_buffers(self._window)
 
         glfw.poll_events()
 

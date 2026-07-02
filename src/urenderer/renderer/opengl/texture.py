@@ -30,6 +30,7 @@ class Texture:
         Raises:
             ValueError: if the texture dtype is not np.uint8
         '''
+
         if texture_data.dtype != np.uint8:
             raise ValueError(
                 f"Only uint8 texture type is supported. texture_data is {texture_data.dtype}")
@@ -37,14 +38,39 @@ class Texture:
         self._data_format = data_format
         self._internal_format = internal_format
 
-        ## SEU CÓDIGO AQUI ######################################################
         # Cria a textura
-        # Realiza o bind no contexto
-        # Define os parâmetros da textura
-        # Especifica os dados da textura
-        # Gera os mipmaps da textura
+        texture_id = GL.glGenTextures(1)
 
-        #########################################################################
+        # Realiza o bind no contexto
+        GL.glBindTexture(GL.GL_TEXTURE_2D, texture_id)
+
+        # Define os parâmetros da textura
+        self.parameters: dict[IntConstant, int] = {}
+        for parameter, value in Texture._default_parameters.items():
+            GL.glTexParameteri(GL.GL_TEXTURE_2D, parameter, value)
+            self.parameters[parameter] = value
+
+        # Determina dimensões — suporta imagens 2D (H, W) e 3D (H, W, C)
+        height, width = texture_data.shape[:2]
+
+        # Especifica os dados da textura
+        GL.glTexImage2D(
+            GL.GL_TEXTURE_2D,   # target
+            0,                  # mipmap level
+            internal_format,    # formato interno (como a GPU armazena)
+            width,
+            height,
+            0,                  # border (deve ser 0)
+            data_format,        # formato dos dados enviados
+            GL.GL_UNSIGNED_BYTE,
+            texture_data
+        )
+
+        # Gera os mipmaps da textura
+        GL.glGenerateMipmap(GL.GL_TEXTURE_2D)
+
+        # Unbind
+        GL.glBindTexture(GL.GL_TEXTURE_2D, 0)
 
         self._texture_id = texture_id
 
@@ -55,11 +81,10 @@ class Texture:
         Args:
             unit (int): unit to bind
         '''
-        ## SEU CÓDIGO AQUI ######################################################
         # Ativa a texture unit e realiza o bind da textura
-        # OBS: cada texture unit é sequencial: GL.GL_TEXTURE1 = GL.GL_TEXTURE0
-
-        #########################################################################
+        # GL_TEXTURE1 = GL_TEXTURE0 + 1, etc.
+        GL.glActiveTexture(GL.GL_TEXTURE0 + unit)
+        GL.glBindTexture(GL.GL_TEXTURE_2D, self._texture_id)
 
     def set_parameter(self, parameter: IntConstant, value: int):
         '''

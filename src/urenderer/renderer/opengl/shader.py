@@ -47,7 +47,7 @@ class Shader:
         self._shader_ranges: dict[Any, list[str]] = {}
 
         # Lê os arquivos
-        with open(vertex_path, "r") as file:
+        with open(vertex_path, "r", encoding="utf-8") as file:
             vertex_shader_source = file.read()
 
             n_line = len(vertex_shader_source.split("\n"))
@@ -56,7 +56,7 @@ class Shader:
 
             vertex_shader_source = self._preprocess(vertex_shader_source,
                                                     GL.GL_VERTEX_SHADER)
-        with open(fragment_path, "r") as file:
+        with open(fragment_path, "r", encoding="utf-8") as file:
             fragment_shader_source = file.read()
 
             n_line = len(fragment_shader_source.split("\n"))
@@ -79,8 +79,10 @@ class Shader:
         if full_source not in Shader._program_cache:
             # Compila o programa ainda não cacheado
 
-            ## SEU CÓDIGO AQUI ######################################################
             # Cria e compila o vertex shader
+            vertex_shader = GL.glCreateShader(GL.GL_VERTEX_SHADER)
+            GL.glShaderSource(vertex_shader, vertex_shader_source)
+            GL.glCompileShader(vertex_shader)
 
             #########################################################################
 
@@ -89,8 +91,9 @@ class Shader:
                                            GL.GL_VERTEX_SHADER,
                                            "VERTEX")
 
-            ## SEU CÓDIGO AQUI ######################################################
-            # Cria e compila o fragment shader
+            fragment_shader = GL.glCreateShader(GL.GL_FRAGMENT_SHADER)
+            GL.glShaderSource(fragment_shader, fragment_shader_source)
+            GL.glCompileShader(fragment_shader)
 
             #########################################################################
 
@@ -124,10 +127,7 @@ class Shader:
         '''
         Use the shader, activating it in the current rendering state
         '''
-        ## SEU CÓDIGO AQUI ######################################################
-        # Usa o programa compilado e linkado anteriormente no contexto atual
-
-        #########################################################################
+        GL.glUseProgram(self.shader_program)
 
     def _get_uniform_location(self, name: str) -> int:
         '''
@@ -197,7 +197,7 @@ class Shader:
                     file_name = file_name.replace("\"", "")
                     file_path = os.path.join(SHADER_LIBRARY_PATH, file_name)
 
-                    with open(file_path, "r") as file:
+                    with open(file_path, "r", encoding="utf-8") as file:
                         library_code = file.read()
 
                     code_lines[i] = library_code

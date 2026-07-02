@@ -1,3 +1,4 @@
+[![Open in Visual Studio Code](https://classroom.github.com/assets/open-in-vscode-2e0aaae1b6195c2367325f4f02e2d04e9abb55f0b24a779b69b11b9e10269abc.svg)](https://classroom.github.com/online_ide?assignment_repo_id=24172110&assignment_repo_type=AssignmentRepo)
 # PBR
 
 Nesta tarefa iremos implementar um modelo de sombreamento PBR. O modelo irá possuir luz difusa utilizando o modelo de Lambert e luz especular utilizando o modelo de Blinn-Phong. Também irá suportar o uso de luzes direcionais, pontuais (point light) e ambiente.
