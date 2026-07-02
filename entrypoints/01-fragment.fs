@@ -40,27 +40,11 @@ void main()
         else // LIGHT_POINT
         {
             float dist      = length(light.position - worldPosition);
-            float refDist   = max(light.referenceDistance, 0.001);
-            attenuation     = (refDist * refDist) / (dist * dist);
+            float refDist   = max(light.reference_distance, 0.001);
         }
-
-        // ── Cor da luz ────────────────────────────────────────────────────────
-        // Cor RGB modulada pela intensidade escalar e pela atenuação
-        vec3 lightColor = light.color * light.intensity * attenuation;
-
-        // ── Direção da luz ────────────────────────────────────────────────────
-        // Vetor normalizado DO fragmento ATÉ a fonte de luz.
-        // Direcional: invertemos light.direction (que aponta da fonte para a cena)
-        // Pontual:    vetor do fragmento até a posição da luz
-        vec3 lightDirection;
-        if(light.type == LIGHT_DIRECTIONAL)
-        {
-            lightDirection = normalize(-light.direction);
-        }
-        else // LIGHT_POINT
-        {
-            lightDirection = normalize(light.position - worldPosition);
-        }
+        attenuation  = computeLightAttenuation(light, worldPosition);
+        vec3 lightColor    = light.color * light.intensity * attenuation;
+        vec3 lightDirection = computeLightDirection(light, worldPosition);
 
         // ── Contribuição da luz ───────────────────────────────────────────────
         // Equação de renderização simplificada com f_brdf = 1:

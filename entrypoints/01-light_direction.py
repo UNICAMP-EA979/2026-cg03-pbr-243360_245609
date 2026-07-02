@@ -1,12 +1,18 @@
 import numpy as np
-
+import sys
+sys.path.insert(0, r"C:\Users\rafae\2026-cg03-pbr-243360_245609\src")
 import urenderer
 
 # Sombreia sem utilizar informações da superfície
 
 # Você precisa escrever vertex.vs para passar as posições, normais e UVs para o fragment
 # e escrever urenderer/renderer/opengl/shader_library/light.glsl e 01-fragment.fs para realizar o sombreamento.
+import os
+print("CWD:", os.getcwd())
 
+
+with open("01-fragment.fs", "r") as f:
+    print(repr(f.read()[:150]))
 if __name__ == "__main__":
     urenderer.utils.clear_workdir("01-light_direction")
     renderer = urenderer.renderer.OpenGLRenderer(1920, 1080)
