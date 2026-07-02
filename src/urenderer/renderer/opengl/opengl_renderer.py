@@ -185,24 +185,12 @@ class OpenGLRenderer(Renderer):
             light = cast(Light, light_info["node"])
             light_position = cast(np.ndarray, light_info["position"])
 
-            material.shader.set_uniform(
-                f"light[{i}].type",
-                light.light_type              # int: tipo da luz
-            )
-            material.shader.set_uniform(
-                f"light[{i}].color",
-                light.color.astype(np.float32)  # vec3: cor RGB
-            )
-            material.shader.set_uniform(
-                f"light[{i}].position",
-                light_position                # vec3: posição (luzes pontuais)
-            )
-            material.shader.set_uniform(
-                f"light[{i}].direction",
-                light.direction.astype(np.float32)  # vec3: direção (luzes direcionais)
-            )
-
-        # Envia a cor ambiente global, somada a todos os fragmentos independente
+            material.shader.set_uniform(f"lights[{i}].type",               light.light_type.value)
+            material.shader.set_uniform(f"lights[{i}].color",              light.light_color.astype(np.float32))
+            material.shader.set_uniform(f"lights[{i}].direction",          light.light_direction.astype(np.float32))
+            material.shader.set_uniform(f"lights[{i}].position",           light_position)
+            material.shader.set_uniform(f"lights[{i}].intensity",          float(light.light_intensity))
+            material.shader.set_uniform(f"lights[{i}].reference_distance", float(light.light_reference_distance))# Envia a cor ambiente global, somada a todos os fragmentos independente
         # de qualquer luz direcional/pontual.
         material.shader.set_uniform("ambientColor", self.ambient_color)
 

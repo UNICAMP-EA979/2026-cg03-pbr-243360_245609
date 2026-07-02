@@ -47,7 +47,7 @@ class Shader:
         self._shader_ranges: dict[Any, list[str]] = {}
 
         # Lê os arquivos
-        with open(vertex_path, "r") as file:
+        with open(vertex_path, "r", encoding="utf-8") as file:
             vertex_shader_source = file.read()
 
             n_line = len(vertex_shader_source.split("\n"))
@@ -56,7 +56,7 @@ class Shader:
 
             vertex_shader_source = self._preprocess(vertex_shader_source,
                                                     GL.GL_VERTEX_SHADER)
-        with open(fragment_path, "r") as file:
+        with open(fragment_path, "r", encoding="utf-8") as file:
             fragment_shader_source = file.read()
 
             n_line = len(fragment_shader_source.split("\n"))
@@ -197,7 +197,7 @@ class Shader:
                     file_name = file_name.replace("\"", "")
                     file_path = os.path.join(SHADER_LIBRARY_PATH, file_name)
 
-                    with open(file_path, "r") as file:
+                    with open(file_path, "r", encoding="utf-8") as file:
                         library_code = file.read()
 
                     code_lines[i] = library_code
